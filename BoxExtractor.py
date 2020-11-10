@@ -65,7 +65,7 @@ class BoardExtractor:
                     if value > 0:
                         if self.save_img:
                             cv2.imwrite("StageImages/5_outerbox.jpg", outerbox)
-                            value -= 1
+                        value -= 1
                     if area > maxi:
                         maxpt = (x, y)
                         maxi = area
@@ -100,7 +100,7 @@ class BoardExtractor:
             if line[0][1] != 0:
                 m = -1 / np.tan(line[0][1])
                 c = line[0][0] / np.sin(line[0][1])
-                cv2.line(img, (0, int(c)), (width, int(m*width + c)), 255)
+                cv2.line(img, (0, int(c)), (width, int(m * width + c)), 255)
             else:
                 cv2.line(img, (line[0][0], 0), (line[0][0], height), 255)
 
@@ -114,7 +114,7 @@ class BoardExtractor:
                 os.remove("StageImages/8_drawline.jpg")
             except:
                 pass
-            cv2.imwrite("StageImages/8_drawline.jpg", outerbox)
+            cv2.imwrite("StageImages/8_drawline.jpg", tmpimp)
 
         def mergeLines(lines, img):
             height, width = np.shape(img)
@@ -125,7 +125,7 @@ class BoardExtractor:
                 theta1 = current[0][1]
                 pt1current = [None, None]
                 pt2current = [None, None]
-                if (theta1 > np.pi * 45 / 180) and (theta1 < np.pi * 135 / 180):
+                if theta1 > np.pi * 45 / 180 and theta1 < np.pi * 135 / 180:
                     pt1current[0] = 0
                     pt1current[1] = p1 / np.sin(theta1)
                     pt2current[0] = width
@@ -144,7 +144,7 @@ class BoardExtractor:
                         theta = pos[0][1]
                         pt1 = [None, None]
                         pt2 = [None, None]
-                        if (theta > np.pi * 45 / 180) and (theta < np.pi * 135 / 180):
+                        if theta > np.pi * 45 / 180 and theta < np.pi * 135 / 180:
                             pt1[0] = 0
                             pt1[1] = p / np.sin(theta)
                             pt2[0] = width
@@ -154,8 +154,7 @@ class BoardExtractor:
                             pt1[0] = p / np.cos(theta)
                             pt2[1] = height
                             pt2[0] = -pt2[1] * np.tan(theta) + p / np.cos(theta)
-                        if (pt1[0] - pt1current[0]) ** 2 + (pt1[1] - pt1current[1]) ** 2 < 64 ** 2 and (
-                                pt2[0] - pt2current[0]) ** 2 + (pt2[1] - pt2current[1]) ** 2 < 64 ** 2:
+                        if (pt1[0] - pt1current[0])**2 + (pt1[1] - pt1current[1])**2 < 64**2 and (pt2[0] - pt2current[0])**2 + (pt2[1] - pt2current[1])**2 < 64**2:
                             current[0][0] = (current[0][0] + pos[0][0]) / 2
                             current[0][1] = (current[0][1] + pos[0][1]) / 2
                             pos[0][0] = None
@@ -184,7 +183,7 @@ class BoardExtractor:
                 if p > bottomedge[0][0]:
                     bottomedge[0] = current[:]
 
-            if (theta > np.pi * 10 / 180) and (theta < np.pi * 170 / 180):
+            if (theta < np.pi * 10 / 180) or (theta > np.pi * 170 / 180):
                 if xIntercept > rightxintercept:
                     rightedge[0] = current[:]
                     rightxintercept = xIntercept
@@ -210,6 +209,159 @@ class BoardExtractor:
                 pass
             cv2.imwrite("StageImages/9_drawline.jpg", tmpimg)
 
+        leftedge = leftedge[0]
+        rightedge = rightedge[0]
+        bottomedge = bottomedge[0]
+        topedge = topedge[0]
+
+        # Calculating two points that lie on each of the four lines
+        left1 = [None, None]
+        left2 = [None, None]
+        right1 = [None, None]
+        right2 = [None, None]
+        top1 = [None, None]
+        top2 = [None, None]
+        bottom1 = [None, None]
+        bottom2 = [None, None]
+
+        if leftedge[1] != 0:
+            left1[0] = 0
+            left1[1] = leftedge[0] / np.sin(leftedge[1])
+            left2[0] = width
+            left2[1] = -left2[0] / np.tan(leftedge[1]) + left1[1]
+        else:
+            left1[1] = 0
+            left1[0] = leftedge[0] / np.cos(leftedge[1])
+            left2[1] = height
+            left2[0] = left1[0] - height * np.tan(leftedge[1])
+
+        if rightedge[1] != 0:
+            right1[0] = 0
+            right1[1] = rightedge[0] / np.sin(rightedge[1])
+            right2[0] = width
+            right2[1] = -right2[0] / np.tan(rightedge[1]) + right1[1]
+        else:
+            right1[1] = 0
+            right1[0] = rightedge[0] / np.cos(rightedge[1])
+            right2[1] = height
+            right2[0] = right1[0] - height * np.tan(rightedge[1])
+
+        bottom1[0] = 0
+        bottom1[1] = bottomedge[0] / np.sin(bottomedge[1])
+
+        bottom2[0] = width
+        bottom2[1] = -bottom2[0] / np.tan(bottomedge[1]) + bottom1[1]
+
+        top1[0] = 0
+        top1[1] = topedge[0] / np.sin(topedge[1])
+        top2[0] = width
+        top2[1] = -top2[0] / np.tan(topedge[1]) + top1[1]
+
+        leftA = left2[1] - left1[1]
+        leftB = left1[0] - left2[0]
+        leftC = leftA * left1[0] + leftB * left1[1]
+
+        rightA = right2[1] - right1[1]
+        rightB = right1[0] - right2[0]
+        rightC = rightA * right1[0] + rightB * right1[1]
+
+        topA = top2[1] - top1[1]
+        topB = top1[0] - top2[0]
+        topC = topA * top1[0] + topB * top1[1]
+
+        bottomA = bottom2[1] - bottom1[1]
+        bottomB = bottom1[0] - bottom2[0]
+        bottomC = bottomA * bottom1[0] + bottomB * bottom1[1]
+
+        detTopLeft = leftA * topB - leftB * topA
+        ptTopLeft = ((topB * leftC - leftB * topC) / detTopLeft, (leftA * topC - topA * leftC) / detTopLeft)
+        detTopRight = rightA * topB - rightB * topA
+        ptTopRight = ((topB * rightC - rightB * topC) / detTopRight, (rightA * topC - topA * rightC) / detTopRight)
+        detBottomRight = rightA * bottomB - rightB * bottomA
+        ptBottomRight = (
+        (bottomB * rightC - rightB * bottomC) / detBottomRight, (rightA * bottomC - bottomA * rightC) / detBottomRight)
+        detBottomLeft = leftA * bottomB - leftB * bottomA
+        ptBottomLeft = ((bottomB * leftC - leftB * bottomC) / detBottomLeft,
+                        (leftA * bottomC - bottomA * leftC) / detBottomLeft)
+
+        cv2.circle(tmppp, (int(ptTopLeft[0]), int(ptTopLeft[1])), 5, 0, -1)
+        cv2.circle(tmppp, (int(ptTopRight[0]), int(ptTopRight[1])), 5, 0, -1)
+        cv2.circle(tmppp, (int(ptBottomLeft[0]), int(ptBottomLeft[1])), 5, 0, -1)
+        cv2.circle(tmppp, (int(ptBottomRight[0]), int(ptBottomRight[1])), 5, 0, -1)
+        if self.save_img:
+            try:
+                os.remove("StageImages/10_extreme_points.jpg")
+            except:
+                pass
+            cv2.imwrite("StageImages/10_extreme_points.jpg", tmppp)
+
+        leftedgelensq = (ptBottomLeft[0] - ptTopLeft[0]) ** 2 + (ptBottomLeft[1] - ptTopLeft[1]) ** 2
+        rightedgelensq = (ptBottomRight[0] - ptTopRight[0]) ** 2 + (ptBottomRight[1] - ptTopRight[1]) ** 2
+        topedgelensq = (ptTopRight[0] - ptTopLeft[0]) ** 2 + (ptTopLeft[1] - ptTopRight[1]) ** 2
+        bottomedgelensq = (ptBottomRight[0] - ptBottomLeft[0]) ** 2 + (ptBottomLeft[1] - ptBottomRight[1]) ** 2
+        maxlength = int(max(leftedgelensq, rightedgelensq, bottomedgelensq, topedgelensq) ** 0.5)
+
+        src = [(0, 0)] * 4
+        dst = [(0, 0)] * 4
+        src[0] = ptTopLeft[:]
+        dst[0] = (0, 0)
+        src[1] = ptTopRight[:]
+        dst[1] = (maxlength - 1, 0)
+        src[2] = ptBottomRight[:]
+        dst[2] = (maxlength - 1, maxlength - 1)
+        src[3] = ptBottomLeft[:]
+        dst[3] = (0, maxlength - 1)
+        src = np.array(src).astype(np.float32)
+        dst = np.array(dst).astype(np.float32)
+        self.extractedgrid = cv2.warpPerspective(self.originalimage, cv2.getPerspectiveTransform(src, dst),
+                                                 (maxlength, maxlength))
+        if self.save_img:
+            try:
+                os.remove("StageImages/11_cut.jpg")
+            except:
+                pass
+            cv2.imwrite("StageImages/11_cut.jpg", self.extractedgrid)
+
+        self.extractedgrid = cv2.resize(self.extractedgrid, (252, 252))
+
+    def create_image_grid(self):
+        if self.extractedgrid is None:
+            raise Exception("Grid not yet extracted")
+        grid = np.copy(self.extractedgrid)
+        edge = np.shape(grid)[0]
+        celledge = edge // 9
+
+        grid = cv2.bitwise_not(
+            cv2.adaptiveThreshold(grid, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 101, 1))
+        if self.save_img:
+            try:
+                os.remove("StageImages/12_bitwise.jpg")
+            except:
+                pass
+            cv2.imwrite("StageImages/12_bitwise.jpg", grid)
+        tempgrid = []
+        for i in range(celledge, edge + 1, celledge):
+            for j in range(celledge, edge + 1, celledge):
+                rows = grid[i - celledge:i]
+                tempgrid.append([rows[k][j - celledge:j] for k in range(len(rows))])
+
+        finalgrid = []
+        for i in range(0, len(tempgrid) - 8, 9):
+            finalgrid.append(tempgrid[i:i + 9])
+
+        for i in range(9):
+            for j in range(9):
+                finalgrid[i][j] = np.array(finalgrid[i][j])
+        try:
+            for i in range(9):
+                for j in range(9):
+                    os.remove("StageImages/cell" + str(i) + str(j) + ".jpg")
+        except:
+            pass
+        for i in range(9):
+            for j in range(9):
+                cv2.imwrite(str("StageImages/cell" + str(i) + str(j) + ".jpg"), finalgrid[i][j])
+        return finalgrid
 
 
 
@@ -218,3 +370,4 @@ if __name__ == '__main__':
     preprocessor = BoardExtractor(path)
     preprocessor.preprocess_image()
     preprocessor.detect_and_crop_grid()
+    boardcells = preprocessor.create_image_grid()
