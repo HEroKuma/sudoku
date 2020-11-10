@@ -33,6 +33,20 @@ class Solver:
 
         return possibilities
 
+    def find_spot(self):
+        unsolved = True
+        while unsolved:
+            unsolved = False
+            for row_number, row in enumerate(self.puzzle):
+                for column_number, item in enumerate(row):
+                    if item == 0:
+                        unsolved = True
+                        possibilities = self.find_possibilities(row_number, column_number)
+                        if len(possibilities) == 1:
+                            self.puzzle[row_number][column_number] = list(possibilities)[0]
+
+        return self.puzzle
+
 
 if __name__ == '__main__':
     problem = [[5, 3, 0, 0, 7, 0, 0, 0, 0],
@@ -46,4 +60,8 @@ if __name__ == '__main__':
                [0, 0, 0, 0, 8, 0, 0, 7, 9]]
 
     solver = Solver(problem)
-    print(solver.find_possibilities(1, 1))
+    # print(solver.get_box(1, 1))
+    # print(solver.find_possibilities(1, 1))
+    ans = solver.find_spot()
+    for i in ans:
+        print(i)
