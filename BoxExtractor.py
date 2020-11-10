@@ -6,6 +6,7 @@ import numpy as np
 class BoardExtractor:
     def __init__(self, img):
         self.image = cv2.imread(img, 0)
+        self.originalimage = np.copy(self.image)
         self.extractedgrid = None
         self.save_img = True
 
@@ -130,13 +131,85 @@ class BoardExtractor:
                     pt2current[0] = width
                     pt2current[1] = -pt2current[0] / np.tan(theta1) + p1 / np.sin(theta1)
                 else:
-                    pt1current[0] = p1 / np.cos(theta1)
                     pt1current[1] = 0
-                    pt2current[0] = height
-                    pt2current[1] = -pt2current[1] * np.tan(theta1) + p1 / np.cos(theta1)
+                    pt1current[0] = p1 / np.cos(theta1)
+                    pt2current[1] = height
+                    pt2current[0] = -pt2current[1] * np.tan(theta1) + p1 / np.cos(theta1)
 
                 for pos in lines:
-                    if
+                    if pos[0].all() == current[0].all():
+                        continue
+                    if abs(pos[0][0] - current[0][0]) < 20 and abs(pos[0][1] - current[0][1]) < np.pi * 10 / 180:
+                        p = pos[0][0]
+                        theta = pos[0][1]
+                        pt1 = [None, None]
+                        pt2 = [None, None]
+                        if (theta > np.pi * 45 / 180) and (theta < np.pi * 135 / 180):
+                            pt1[0] = 0
+                            pt1[1] = p / np.sin(theta)
+                            pt2[0] = width
+                            pt2[1] = -pt2[0] / np.tan(theta) + p / np.sin(theta)
+                        else:
+                            pt1[1] = 0
+                            pt1[0] = p / np.cos(theta)
+                            pt2[1] = height
+                            pt2[0] = -pt2[1] * np.tan(theta) + p / np.cos(theta)
+                        if (pt1[0] - pt1current[0]) ** 2 + (pt1[1] - pt1current[1]) ** 2 < 64 ** 2 and (
+                                pt2[0] - pt2current[0]) ** 2 + (pt2[1] - pt2current[1]) ** 2 < 64 ** 2:
+                            current[0][0] = (current[0][0] + pos[0][0]) / 2
+                            current[0][1] = (current[0][1] + pos[0][1]) / 2
+                            pos[0][0] = None
+                            pos[0][1] = None
+            lines = list(filter(lambda a : a[0][0] is not None and a[0][1] is not None, lines))
+
+            return lines
+
+        lines = mergeLines(lines, outerbox)
+
+        topedge = [[1000, 1000]]
+        bottomedge = [[-1000, -1000]]
+        leftedge = [[1000, 1000]]
+        leftxintercept = 100000
+        rightedge = [[-1000, -1000]]
+        rightxintercept = 0
+        for i in range(len(lines)):
+            current = lines[i][0]
+            p = current[0]
+            theta = current[1]
+            xIntercept = p / np.cos(theta)
+
+            if (theta > np.pi * 80 / 180) and (theta < np.pi * 100 / 180):
+                if p < topedge[0][0]:
+                    topedge[0] = current[:]
+                if p > bottomedge[0][0]:
+                    bottomedge[0] = current[:]
+
+            if (theta > np.pi * 10 / 180) and (theta < np.pi * 170 / 180):
+                if xIntercept > rightxintercept:
+                    rightedge[0] = current[:]
+                    rightxintercept = xIntercept
+                elif xIntercept <= leftxintercept:
+                    leftedge[0] = current[:]
+                    leftxintercept = xIntercept
+
+        tmpimg = np.copy(outerbox)
+        tmppp = np.copy(self.originalimage)
+        tmppp = drawLine(leftedge, tmppp)
+        tmppp = drawLine(rightedge, tmppp)
+        tmppp = drawLine(topedge, tmppp)
+        tmppp = drawLine(bottomedge, tmppp)
+
+        tmpimg = drawLine(leftedge, tmpimg)
+        tmpimg = drawLine(rightedge, tmpimg)
+        tmpimg = drawLine(topedge, tmpimg)
+        tmpimg = drawLine(bottomedge, tmpimg)
+        if self.save_img:
+            try:
+                os.remove("StageImages/9_drawline.jpg")
+            except:
+                pass
+            cv2.imwrite("StageImages/9_drawline.jpg", tmpimg)
+
 
 
 
@@ -144,3 +217,4 @@ if __name__ == '__main__':
     path = 'test_img.jpg'
     preprocessor = BoardExtractor(path)
     preprocessor.preprocess_image()
+    preprocessor.detect_and_crop_grid()
