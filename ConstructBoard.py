@@ -12,6 +12,7 @@ img_transforms = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize([0.5], [0.5])])
 
+
 class DigitRecognizer:
     def __init__(self):
         self.writeimg = True
@@ -94,6 +95,13 @@ class DigitRecognizer:
             cv2.imwrite("StageImages/15_bound.jpg", newimg)
             self.writeimg = False
         return newimg
+
+class ConstructGrid():
+    def __init__(self, cellarray):
+        self.cellarray = cellarray
+        self.recognizer = DigitRecognizer()
+        self.finalgrid = [[0 for i in range(9)] for j in range(9)]
+        self.imagewritten = False
 
 
 if __name__ == '__main__':
