@@ -2,27 +2,36 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from torch.nn import init
+from torchvision.models.resnet import ResNet, BasicBlock
 
 class CNN(nn.Module):
     def __init__(self):
         super(CNN, self).__init__()
-        self.layer1 = nn.Conv2d(3, 32, 3, 1, padding=1)
-        self.layer2 = nn.Conv2d(32, 64, 3, 1, padding=1)
+        self.layer1 = nn.Conv2d(1, 64, 3, 1, padding=1)
+        self.layer2 = nn.Conv2d(64, 64, 3, 1, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
         self.layer3 = nn.Conv2d(64, 128, 3, 1, padding=1)
-        self.layer4 = nn.Linear(2048, 512)
-        self.layer5 = nn.Linear(512, 64)
-        self.layer6 = nn.Linear(64, 10)
+        self.layer4 = nn.Conv2d(128, 128, 3, 1, padding=1)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.layer5 = nn.Conv2d(128, 256, 3, 1, padding=1)
+        self.bn3 = nn.BatchNorm1d(12544)
+        self.layer6 = nn.Linear(12544, 512)
+        self.layer7 = nn.Linear(512, 10)
 
     def forward(self, x):
-        conv1 = F.max_pool2d(F.relu(self.layer1(x)), 2)
+        conv1 = F.relu(self.layer1(x))
         conv2 = F.max_pool2d(F.relu(self.layer2(conv1)), 2)
-        conv3 = F.max_pool2d(F.relu(self.layer3(conv2)), 2)
-        fc_in = conv3.view(conv3.size(0), -1)
-        flat1 = F.relu(self.layer4(fc_in))
-        flat2 = F.relu(self.layer5(flat1))
-        flat3 = F.relu(self.layer6(flat2))
+        bn1 = self.bn1(conv2)
+        conv3 = F.relu(self.layer3(bn1))
+        conv4 = F.max_pool2d(F.relu(self.layer4(conv3)), 2)
+        bn2 = self.bn2(conv4)
+        conv5 = F.max_pool2d(F.relu(self.layer5(bn2)), 2)
+        fc_in = conv5.view(conv3.size(0), -1)
+        bn3 = self.bn3(fc_in)
+        flat1 = F.relu(self.layer6(bn3))
+        flat2 = F.softmax(self.layer7(flat1))
 
-        return flat3
+        return flat2
 
 class LeNet(nn.Module):
     def __init__(self):
@@ -170,69 +179,10 @@ class Inception(nn.Module):
 def conv3x3(in_planes, out_planes, stride=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride, padding=1, bias=False)
 
-class ResBlock(nn.Module):
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(ResBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = F.relu(out, inplace=True)
-        out = self.conv2(out)
-        out = self.bn2(out)
-        if self.downsample is not None:
-            residual = self.downsample(x)
-        out += residual
-        out = F.relu(out)
-
-        return out
-
-class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=10):
-        super(ResNet, self).__init__()
-        self.in_channels = 16
-        self.conv = conv3x3(3, 16)
-        self.bn = nn.BatchNorm2d(16)
-        self.layer1 = self.make_layer(block, 16, layers[0])
-        self.layer2 = self.make_layer(block, 32, layers[0], 2)
-        self.layer3 = self.make_layer(block, 64, layers[1], 2)
-        self.fc = nn.Linear(64, num_classes)
-
-    def make_layer(self, block, out_channels, blocks, stride=1):
-        downsample = None
-        if(stride != 1) or (self.in_channels != out_channels):
-            downsample = nn.Sequential(
-                conv3x3(self.in_channels, out_channels, stride=stride),
-                nn.BatchNorm2d(out_channels)
-            )
-        layers = []
-        layers.append(block(self.in_channels, out_channels, stride, downsample))
-        self.in_channels = out_channels
-        for i in range(1, blocks):
-            layers.append(block(out_channels, out_channels))
-
-        return nn.Sequential(*layers)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.bn(out)
-        out = F.relu(out)
-        out = self.layer1(out)
-        out = self.layer2(out)
-        out = self.layer3(out)
-        out = F.avg_pool2d(out, kernel_size=8)
-        out = out.view(out.size(0), -1)
-        out = self.fc(out)
-
-        return out
+class MNISTResNet(ResNet):
+    def __init__(self):
+        super(MNISTResNet, self).__init__(BasicBlock, [2, 2, 2, 2], num_classes=10)
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=3, stride=1, padding=3, bias=False)
 
 
 if __name__ == "__main__":

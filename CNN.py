@@ -4,15 +4,17 @@ import torchvision.datasets as dsets
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from torch.autograd import Variable
+from torch.optim import lr_scheduler
 import CNN_model
 
 # Hyper Parameters
-num_epochs = 20
-batch_size = 128
-learning_rate = 1e-3
+num_epochs = 40
+batch_size = 256
+learning_rate = 1e-2
 
 img_transforms = transforms.Compose(
-    [transforms.ToTensor(),
+    [transforms.Resize((56, 56)),
+     transforms.ToTensor(),
      transforms.Normalize([0.5], [0.5])])
 # MNIST Dataset
 train_dataset = dsets.MNIST(
@@ -74,7 +76,8 @@ class CNN(nn.Module):
 
 
 #cnn = CNN()
-cnn = CNN_model.LeNet()
+cnn = CNN_model.MNISTResNet()
+print(cnn)
 if torch.cuda.is_available():
     cnn.cuda()
 
@@ -85,7 +88,6 @@ optimizer = torch.optim.Adam(cnn.parameters(), lr=learning_rate)
 # Train the Model
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):
-        print(images.shape)
         if torch.cuda.is_available():
             images = Variable(images).cuda()
             labels = Variable(labels).cuda()
@@ -122,4 +124,4 @@ print('Test Accuracy of the model on the 10000 test images: %d/%d ' %
       (correct, total))
 
 # Save the Trained Model
-torch.save(cnn.state_dict(), 'LeNet.pth')
+torch.save(cnn.state_dict(), 'Res.pth')
